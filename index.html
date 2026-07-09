@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Cost Simulator - Autoscale Falle</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --panel-bg: #252526;
+            --text-main: #d4d4d4;
+            --accent: #0078d4;
+            --danger: #d13438;
+            --success: #107c10;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            padding: 20px; 
+            max-width: 900px;
+            margin: 0 auto;
+            transition: background-color 0.5s ease; /* Für den dramatischen Effekt */
+        }
+
+        h1, h2, h3 { margin-top: 0; }
+
+        .panel { 
+            border: 1px solid #333; 
+            background: var(--panel-bg);
+            padding: 25px; 
+            margin-bottom: 20px; 
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .dashboard {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.2em;
+            border-bottom: 2px solid #444;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .budget-display { font-weight: bold; color: #ffd700; }
+        
+        .controls { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
+        
+        label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 1.1em; }
+        input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+
+        button { 
+            background: var(--accent); 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            cursor: pointer; 
+            border-radius: 4px;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover { background: #005a9e; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        
+        .btn-start { background: var(--success); width: 100%; margin-top: 10px; }
+        .btn-start:hover { background: #0b5a0b; }
+
+        /* Simulations-Bereich */
+        #simulation-area { display: none; }
+        .metrics {
+            display: flex;
+            justify-content: space-between;
+            background: #000;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        /* Dramatische Endscreens */
+        body.game-over {
+            background-color: #4a0000;
+            color: #fff;
+        }
+        body.game-over .panel { background-color: var(--danger); border-color: #fff; }
+        
+        body.success {
+            background-color: #003300;
+            color: #fff;
+        }
+        body.success .panel { background-color: var(--success); border-color: #fff; }
+
+        #result-screen { display: none; text-align: center; }
+        #result-screen h1 { font-size: 2.5em; text-transform: uppercase; }
+        
+        /* Zusatz-Infos für Multi-Faktor */
+        .scenario-details { font-size: 0.9em; color: #aaa; margin-top: 15px; border-top: 1px dashed #555; padding-top: 15px; }
+
+    </style>
+</head>
+<body>
+
+    <h1 id="main-title">☁️ Systemhaus Simulator: Architektur & Effizienz</h1>
+
+    <div id="setup-panel" class="panel">
+        <div class="dashboard">
+            <span>Kunde: <strong id="customer-name">Lade...</strong></span>
+            <span>Budget: <span class="budget-display" id="budget-display">500.00 €</span></span>
+        </div>
+
+        <h2>Auftrag: Online-Shop Skalierung</h2>
+        <p id="scenario-description">
+            Lade Szenario-Parameter...
+        </p>
+
+> Justus:
+<div class="controls">
+            <h3>Architektur-Konfiguration</h3>
+            <label>
+                <input type="checkbox" id="toggle-autoscale"> 
+                Azure Monitor: Automatische Skalierung (Autoscale) aktivieren
+            </label>
+            <label id="limit-container" style="opacity: 0.5; pointer-events: none;">
+                <input type="checkbox" id="toggle-limit"> 
+                Kosten-Limit definieren (Hard Cap: Max 2 Instanzen)
+            </label>
+        </div>
+
+        <button class="btn-start" id="start-btn" onclick="startSimulation()">🚀 Konfiguration anwenden & Monat starten</button>
+
+        <div class="scenario-details" id="multifactor-info">
+            <!-- Hier werden die kombinierten AZ-900 Faktoren angezeigt -->
+        </div>
+    </div>
+
+    <!-- Live Simulation -->
+    <div id="simulation-area" class="panel">
+        <h2>Live Monitor: E-Commerce Web App</h2>
+        <div class="metrics">
+            <span>CPU Auslastung: <span id="cpu-load">10</span>%</span>
+            <span>Aktive Server: <span id="server-count">1</span></span>
+            <span>Aktuelle Kosten: <span id="current-cost">0.00</span> €</span>
+        </div>
+        <p id="event-log">System läuft normal...</p>
+    </div>
+
+    <!-- Result Screen -->
+    <div id="result-screen" class="panel">
+        <h1 id="result-title"></h1>
+        <p id="result-message" style="font-size: 1.2em; line-height: 1.5;"></p>
+        <button onclick="location.reload()" style="margin-top: 20px;">🔄 Nächsten Auftrag laden</button>
+    </div>
+
+    <script>
+        /* =========================================
+           1. MULTI-FAKTOR SZENARIO GENERATOR
+           Verknüpft die 6 AZ-900 Kostenfaktoren
+        ========================================= */
+        const costFactors = {
+            geography: ["West Europe (Standard Egress)", "East US (Hoher Egress Traffic)", "UAE North (Teure Compute-Preise)"],
+            resourceType: ["B-Series (Burstable)", "D-Series (General Purpose)", "E-Series (Memory Optimized)"],
+            marketplace: ["Keine Drittanbieter", "Barracuda WAF (+ Lizenzkosten)", "Datadog Monitoring (+ Agent-Kosten)"]
+        };
+
+        let currentScenario = {
+            budget: 500.00,
+            baseCostPerServer: 0,
+            hasViralEvent: true
+        };
+
+        function generateRandomScenario() {
+            // Zufällige Kombination der Parameter für hohe Varianz (Basis für die 300+ Szenarien)
+            let geo = costFactors.geography[Math.floor(Math.random() * costFactors.geography.length)];
+            let res = costFactors.resourceType[Math.floor(Math.random() * costFactors.resourceType.length)];
+            let market = costFactors.marketplace[Math.floor(Math.random() * costFactors.marketplace.length)];
+            
+            // Berechnung der Grundkosten basierend auf den Parametern
+            currentScenario.baseCostPerServer = (res.includes("E-Series") ? 80 : 40) + (geo.includes("UAE") ? 20 : 0);
+            
+            document.getElementById('customer-name').innerText = "Fashion Store GmbH";
+            document.getElementById('scenario-description').innerText = 
+                Der Kunde erwartet zum Monatsende einen Marketing-Push. Stelle sicher, dass die Applikation erreichbar bleibt, aber sprenge auf keinen Fall das Budget von ${currentScenario.budget} €!;
+            
+            document.getElementById('multifactor-info').innerText = 
+                Integrierte AZ-900 Faktoren dieses Durchlaufs: Region: ${geo} | Compute: ${res} | Marketplace: ${market};
+        }
+
+        /* =========================================
+           2. UI LOGIK & EVENT LISTENER
+        ========================================= */
+        const autoscaleCheckbox = document.getElementById('toggle-autoscale');
+        const limitCheckbox = document.getElementById('toggle-limit');
+        const limitContainer = document.getElementById('limit-container');
+
+> Justus:
+autoscaleCheckbox.addEventListener('change', (e) => {
+            if(e.target.checked) {
+                limitContainer.style.opacity = '1';
+                limitContainer.style.pointerEvents = 'auto';
+            } else {
+                limitContainer.style.opacity = '0.5';
+                limitContainer.style.pointerEvents = 'none';
+                limitCheckbox.checked = false;
+            }
+        });
+
+        /* =========================================
+           3. SIMULATION & CORE LOOP
+           Die Autoscale-Falle Logik
+        ========================================= */
+        let simInterval;
+        let servers = 1;
+        let currentCost = 0;
+        let cpuLoad = 10;
+        let tick = 0;
+
+        function startSimulation() {
+            // UI umstellen
+            document.getElementById('setup-panel').style.display = 'none';
+            document.getElementById('main-title').style.display = 'none';
+            document.getElementById('simulation-area').style.display = 'block';
+
+            let autoscaleOn = autoscaleCheckbox.checked;
+            let hardLimitOn = limitCheckbox.checked;
+            let eventLog = document.getElementById('event-log');
+
+            simInterval = setInterval(() => {
+                tick++;
+                
+                // Basis-Kostenberechnung pro Tick
+                currentCost += (servers * (currentScenario.baseCostPerServer / 100));
+                
+                // DAS EVENT: Viraler Hit bei Tick 15
+                if (tick === 15) {
+                    eventLog.innerText = "⚠️ VIRALER HIT! Traffic schießt in die Höhe! System reagiert...";
+                    eventLog.style.color = "#ffd700";
+                    eventLog.style.fontWeight = "bold";
+                }
+
+                // Nach dem Event schnellt die CPU hoch
+                if (tick > 15 && tick < 25) {
+                    cpuLoad = Math.min(99, cpuLoad + 25);
+                }
+
+                // Autoscale Logik triggert
+                if (cpuLoad > 80 && autoscaleOn) {
+                    if (!hardLimitOn) {
+                        // SZENARIO A: Kein Limit. Server explodieren.
+                        servers += Math.floor(cpuLoad / 10); 
+                        eventLog.innerText = 🚨 Autoscale aktiv (Kein Limit!): Skaliere auf ${servers} Instanzen hoch!;
+                        eventLog.style.color = "#d13438";
+                    } else if (servers < 2) {
+                        // SZENARIO B: Limit ist gesetzt.
+                        servers = 2;
+                        eventLog.innerText = "✅ Autoscale aktiv: Hard Limit greift. Maximal 2 Instanzen bereitgestellt.";
+                        eventLog.style.color = "#107c10";
+                    } else if (servers === 2 && cpuLoad > 90) {
+                        eventLog.innerText = "ℹ️ Traffic wird gedrosselt. Architektur hält stand. Kosten im Rahmen.";
+                        eventLog.style.color = "#107c10";
+                        cpuLoad = 90; // Stabilisiert sich leicht
+                    }
+                } else if (cpuLoad > 80 && !autoscaleOn) {
+                     eventLog.innerText = "❌ Systemüberlastung! Kein Autoscale konfiguriert. Shop geht offline (Downtime).";
+                     eventLog.style.color = "#d13438";
+                }
+
+                // UI Updates im Loop
+                document.getElementById('cpu-load').innerText = cpuLoad;
+                document.getElementById('server-count').innerText = servers;
+                document.getElementById('current-cost').innerText = currentCost.toFixed(2);
+
+                // Win/Loss Checks
+                if (currentCost > currentScenario.budget) {
+                    endGame(false, "Gefeuert! Du hast die Zusammenhänge nicht verstanden und utopische Kosten produziert. Das Unternehmen ist pleite.");
+
+> Justus:
+} else if (tick >= 60) {
+                    // Simulation überlebt (60 Ticks = Monatsende)
+                    if (!autoscaleOn) {
+                        endGame(false, "Gefeuert! Du hast kein Autoscale konfiguriert. Der Shop war während des viralen Hits offline. Enormer Umsatzverlust.");
+                    } else {
+                        endGame(true, "Effizient gearbeitet! Du hast das Unternehmen vor dem Ruin bewahrt, die Architektur im Griff behalten und den Traffic elegant abgefangen. Beförderung!");
+                    }
+                }
+
+            }, 200); // Geschwindigkeit der Simulation
+        }
+
+        /* =========================================
+           4. AUFLÖSUNG & KONSEQUENZ
+        ========================================= */
+        function endGame(isWin, message) {
+            clearInterval(simInterval);
+            document.getElementById('simulation-area').style.display = 'none';
+            let resultScreen = document.getElementById('result-screen');
+            resultScreen.style.display = 'block';
+
+            if (isWin) {
+                document.body.classList.add('success');
+                document.getElementById('result-title').innerText = "Mission Erfolgreich";
+            } else {
+                document.body.classList.add('game-over');
+                document.getElementById('result-title').innerText = "Game Over";
+            }
+            
+            document.getElementById('result-message').innerText = message;
+        }
+
+        // Init beim Laden der Seite
+        window.onload = generateRandomScenario;
+
+    </script>
+</body>
+</html>
