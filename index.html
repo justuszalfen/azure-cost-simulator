@@ -117,6 +117,7 @@
             Lade Szenario-Parameter...
         </p>
 
+        
 <div class="controls">
             <h3>Architektur-Konfiguration</h3>
             <label>
@@ -195,6 +196,7 @@
         const limitCheckbox = document.getElementById('toggle-limit');
         const limitContainer = document.getElementById('limit-container');
 
+        
 autoscaleCheckbox.addEventListener('change', (e) => {
             if(e.target.checked) {
                 limitContainer.style.opacity = '1';
@@ -275,6 +277,7 @@ autoscaleCheckbox.addEventListener('change', (e) => {
                 if (currentCost > currentScenario.budget) {
                     endGame(false, "Gefeuert! Du hast die Zusammenhänge nicht verstanden und utopische Kosten produziert. Das Unternehmen ist pleite.");
 
+                    
 } else if (tick >= 60) {
                     // Simulation überlebt (60 Ticks = Monatsende)
                     if (!autoscaleOn) {
