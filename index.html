@@ -21,7 +21,7 @@
             padding: 20px; 
             max-width: 900px;
             margin: 0 auto;
-            transition: background-color 0.5s ease; /* Für den dramatischen Effekt */
+            transition: background-color 0.5s ease;
         }
 
         h1, h2, h3 { margin-top: 0; }
@@ -68,7 +68,6 @@
         .btn-start { background: var(--success); width: 100%; margin-top: 10px; }
         .btn-start:hover { background: #0b5a0b; }
 
-        /* Simulations-Bereich */
         #simulation-area { display: none; }
         .metrics {
             display: flex;
@@ -81,25 +80,16 @@
             margin-bottom: 20px;
         }
 
-        /* Dramatische Endscreens */
-        body.game-over {
-            background-color: #4a0000;
-            color: #fff;
-        }
+        body.game-over { background-color: #4a0000; color: #fff; }
         body.game-over .panel { background-color: var(--danger); border-color: #fff; }
         
-        body.success {
-            background-color: #003300;
-            color: #fff;
-        }
+        body.success { background-color: #003300; color: #fff; }
         body.success .panel { background-color: var(--success); border-color: #fff; }
 
         #result-screen { display: none; text-align: center; }
         #result-screen h1 { font-size: 2.5em; text-transform: uppercase; }
         
-        /* Zusatz-Infos für Multi-Faktor */
         .scenario-details { font-size: 0.9em; color: #aaa; margin-top: 15px; border-top: 1px dashed #555; padding-top: 15px; }
-
     </style>
 </head>
 <body>
@@ -113,12 +103,9 @@
         </div>
 
         <h2>Auftrag: Online-Shop Skalierung</h2>
-        <p id="scenario-description">
-            Lade Szenario-Parameter...
-        </p>
+        <p id="scenario-description">Lade Szenario-Parameter...</p>
 
-        
-<div class="controls">
+        <div class="controls">
             <h3>Architektur-Konfiguration</h3>
             <label>
                 <input type="checkbox" id="toggle-autoscale"> 
@@ -132,12 +119,9 @@
 
         <button class="btn-start" id="start-btn" onclick="startSimulation()">🚀 Konfiguration anwenden & Monat starten</button>
 
-        <div class="scenario-details" id="multifactor-info">
-            <!-- Hier werden die kombinierten AZ-900 Faktoren angezeigt -->
-        </div>
+        <div class="scenario-details" id="multifactor-info"></div>
     </div>
 
-    <!-- Live Simulation -->
     <div id="simulation-area" class="panel">
         <h2>Live Monitor: E-Commerce Web App</h2>
         <div class="metrics">
@@ -148,7 +132,6 @@
         <p id="event-log">System läuft normal...</p>
     </div>
 
-    <!-- Result Screen -->
     <div id="result-screen" class="panel">
         <h1 id="result-title"></h1>
         <p id="result-message" style="font-size: 1.2em; line-height: 1.5;"></p>
@@ -156,48 +139,34 @@
     </div>
 
     <script>
-        /* =========================================
-           1. MULTI-FAKTOR SZENARIO GENERATOR
-           Verknüpft die 6 AZ-900 Kostenfaktoren
-        ========================================= */
         const costFactors = {
             geography: ["West Europe (Standard Egress)", "East US (Hoher Egress Traffic)", "UAE North (Teure Compute-Preise)"],
             resourceType: ["B-Series (Burstable)", "D-Series (General Purpose)", "E-Series (Memory Optimized)"],
             marketplace: ["Keine Drittanbieter", "Barracuda WAF (+ Lizenzkosten)", "Datadog Monitoring (+ Agent-Kosten)"]
         };
 
-        let currentScenario = {
-            budget: 500.00,
-            baseCostPerServer: 0,
-            hasViralEvent: true
-        };
+        let currentScenario = { budget: 500.00, baseCostPerServer: 0, hasViralEvent: true };
 
         function generateRandomScenario() {
-            // Zufällige Kombination der Parameter für hohe Varianz (Basis für die 300+ Szenarien)
             let geo = costFactors.geography[Math.floor(Math.random() * costFactors.geography.length)];
             let res = costFactors.resourceType[Math.floor(Math.random() * costFactors.resourceType.length)];
             let market = costFactors.marketplace[Math.floor(Math.random() * costFactors.marketplace.length)];
             
-            // Berechnung der Grundkosten basierend auf den Parametern
             currentScenario.baseCostPerServer = (res.includes("E-Series") ? 80 : 40) + (geo.includes("UAE") ? 20 : 0);
             
             document.getElementById('customer-name').innerText = "Fashion Store GmbH";
             document.getElementById('scenario-description').innerText = 
-                Der Kunde erwartet zum Monatsende einen Marketing-Push. Stelle sicher, dass die Applikation erreichbar bleibt, aber sprenge auf keinen Fall das Budget von ${currentScenario.budget} €!;
+                `Der Kunde erwartet zum Monatsende einen Marketing-Push. Stelle sicher, dass die Applikation erreichbar bleibt, aber sprenge auf keinen Fall das Budget von ${currentScenario.budget} €!`;
             
             document.getElementById('multifactor-info').innerText = 
-                Integrierte AZ-900 Faktoren dieses Durchlaufs: Region: ${geo} | Compute: ${res} | Marketplace: ${market};
+                `Integrierte AZ-900 Faktoren dieses Durchlaufs: Region: ${geo} | Compute: ${res} | Marketplace: ${market}`;
         }
 
-        /* =========================================
-           2. UI LOGIK & EVENT LISTENER
-        ========================================= */
         const autoscaleCheckbox = document.getElementById('toggle-autoscale');
         const limitCheckbox = document.getElementById('toggle-limit');
         const limitContainer = document.getElementById('limit-container');
 
-        
-autoscaleCheckbox.addEventListener('change', (e) => {
+        autoscaleCheckbox.addEventListener('change', (e) => {
             if(e.target.checked) {
                 limitContainer.style.opacity = '1';
                 limitContainer.style.pointerEvents = 'auto';
@@ -208,10 +177,6 @@ autoscaleCheckbox.addEventListener('change', (e) => {
             }
         });
 
-        /* =========================================
-           3. SIMULATION & CORE LOOP
-           Die Autoscale-Falle Logik
-        ========================================= */
         let simInterval;
         let servers = 1;
         let currentCost = 0;
@@ -219,7 +184,6 @@ autoscaleCheckbox.addEventListener('change', (e) => {
         let tick = 0;
 
         function startSimulation() {
-            // UI umstellen
             document.getElementById('setup-panel').style.display = 'none';
             document.getElementById('main-title').style.display = 'none';
             document.getElementById('simulation-area').style.display = 'block';
@@ -230,69 +194,53 @@ autoscaleCheckbox.addEventListener('change', (e) => {
 
             simInterval = setInterval(() => {
                 tick++;
-                
-                // Basis-Kostenberechnung pro Tick
                 currentCost += (servers * (currentScenario.baseCostPerServer / 100));
                 
-                // DAS EVENT: Viraler Hit bei Tick 15
                 if (tick === 15) {
                     eventLog.innerText = "⚠️ VIRALER HIT! Traffic schießt in die Höhe! System reagiert...";
                     eventLog.style.color = "#ffd700";
                     eventLog.style.fontWeight = "bold";
                 }
 
-                // Nach dem Event schnellt die CPU hoch
                 if (tick > 15 && tick < 25) {
                     cpuLoad = Math.min(99, cpuLoad + 25);
                 }
 
-                // Autoscale Logik triggert
                 if (cpuLoad > 80 && autoscaleOn) {
                     if (!hardLimitOn) {
-                        // SZENARIO A: Kein Limit. Server explodieren.
                         servers += Math.floor(cpuLoad / 10); 
-                        eventLog.innerText = 🚨 Autoscale aktiv (Kein Limit!): Skaliere auf ${servers} Instanzen hoch!;
+                        eventLog.innerText = `🚨 Autoscale aktiv (Kein Limit!): Skaliere auf ${servers} Instanzen hoch!`;
                         eventLog.style.color = "#d13438";
                     } else if (servers < 2) {
-                        // SZENARIO B: Limit ist gesetzt.
                         servers = 2;
                         eventLog.innerText = "✅ Autoscale aktiv: Hard Limit greift. Maximal 2 Instanzen bereitgestellt.";
                         eventLog.style.color = "#107c10";
                     } else if (servers === 2 && cpuLoad > 90) {
                         eventLog.innerText = "ℹ️ Traffic wird gedrosselt. Architektur hält stand. Kosten im Rahmen.";
                         eventLog.style.color = "#107c10";
-                        cpuLoad = 90; // Stabilisiert sich leicht
+                        cpuLoad = 90;
                     }
                 } else if (cpuLoad > 80 && !autoscaleOn) {
                      eventLog.innerText = "❌ Systemüberlastung! Kein Autoscale konfiguriert. Shop geht offline (Downtime).";
                      eventLog.style.color = "#d13438";
                 }
 
-                // UI Updates im Loop
                 document.getElementById('cpu-load').innerText = cpuLoad;
                 document.getElementById('server-count').innerText = servers;
                 document.getElementById('current-cost').innerText = currentCost.toFixed(2);
 
-                // Win/Loss Checks
                 if (currentCost > currentScenario.budget) {
                     endGame(false, "Gefeuert! Du hast die Zusammenhänge nicht verstanden und utopische Kosten produziert. Das Unternehmen ist pleite.");
-
-                    
-} else if (tick >= 60) {
-                    // Simulation überlebt (60 Ticks = Monatsende)
+                } else if (tick >= 60) {
                     if (!autoscaleOn) {
                         endGame(false, "Gefeuert! Du hast kein Autoscale konfiguriert. Der Shop war während des viralen Hits offline. Enormer Umsatzverlust.");
                     } else {
                         endGame(true, "Effizient gearbeitet! Du hast das Unternehmen vor dem Ruin bewahrt, die Architektur im Griff behalten und den Traffic elegant abgefangen. Beförderung!");
                     }
                 }
-
-            }, 200); // Geschwindigkeit der Simulation
+            }, 200);
         }
 
-        /* =========================================
-           4. AUFLÖSUNG & KONSEQUENZ
-        ========================================= */
         function endGame(isWin, message) {
             clearInterval(simInterval);
             document.getElementById('simulation-area').style.display = 'none';
@@ -306,13 +254,10 @@ autoscaleCheckbox.addEventListener('change', (e) => {
                 document.body.classList.add('game-over');
                 document.getElementById('result-title').innerText = "Game Over";
             }
-            
             document.getElementById('result-message').innerText = message;
         }
 
-        // Init beim Laden der Seite
         window.onload = generateRandomScenario;
-
     </script>
 </body>
 </html>
